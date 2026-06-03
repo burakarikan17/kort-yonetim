@@ -1,0 +1,11 @@
+.next
+.vercel
+.open-next
+node_modules
+.env
+.env*.local
+.wrangler
+.playwright-cli
+dist
+coverage
+*.tsbuildinfo

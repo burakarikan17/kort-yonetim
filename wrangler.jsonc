@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": ".open-next/worker.js",
+  "name": "kort-rezervasyon-paneli",
+  "compatibility_date": "2026-06-03",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "services": [
+    {
+      "binding": "WORKER_SELF_REFERENCE",
+      "service": "kort-rezervasyon-paneli"
+    }
+  ],
+  "vars": {
+    "NEXT_PUBLIC_SITE_URL": "https://kort.burakarikan.online"
+  }
+}
