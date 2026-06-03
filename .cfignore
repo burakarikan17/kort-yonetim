@@ -1,0 +1,8 @@
+.git
+.github
+.next/cache
+.open-next/cache
+node_modules
+.env
+.env*.local
+*.tsbuildinfo

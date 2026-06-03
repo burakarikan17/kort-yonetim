@@ -1,11 +1,24 @@
 import { LockKeyhole } from "lucide-react";
+import { redirect } from "next/navigation";
 import { signIn } from "@/lib/actions/auth";
+import { createClient } from "@/lib/supabase/server";
+
+export const runtime = "nodejs";
 
 export default async function LoginPage({
   searchParams
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
+  const supabase = await createClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    redirect("/");
+  }
+
   const params = await searchParams;
 
   return (
