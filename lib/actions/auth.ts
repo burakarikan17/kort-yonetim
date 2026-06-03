@@ -26,7 +26,7 @@ export async function signIn(formData: FormData) {
     redirect("/login?error=Giriş bilgileri hatalı");
   }
 
-  redirect("/");
+  redirect("/dashboard");
 }
 
 export async function signOut() {

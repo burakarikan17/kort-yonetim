@@ -11,7 +11,7 @@ export default async function DashboardPage() {
   const { todayReservations, upcomingReservations, finance } = await getDashboardData();
 
   return (
-    <AppShell title="Dashboard" subtitle="Bugünkü durum ve yaklaşan rezervasyonlar" active="/">
+    <AppShell title="Dashboard" subtitle="Bugünkü durum ve yaklaşan rezervasyonlar" active="/dashboard">
       <div className="grid gap-4 md:grid-cols-3">
         <StatCard
           label="Bugünün rezervasyonları"

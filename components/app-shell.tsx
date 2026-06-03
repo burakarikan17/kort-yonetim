@@ -4,7 +4,7 @@ import { signOut } from "@/lib/actions/auth";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: Gauge },
+  { href: "/dashboard", label: "Dashboard", icon: Gauge },
   { href: "/takvim", label: "Takvim", icon: CalendarDays },
   { href: "/rezervasyon-ekle", label: "Rezervasyon Ekle", icon: Plus },
   { href: "/rezervasyonlar", label: "Rezervasyonlar", icon: Search },
