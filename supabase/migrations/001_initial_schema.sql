@@ -27,6 +27,10 @@ alter table public.reservations
 create table if not exists public.settings (
   id integer primary key default 1,
   hourly_price numeric(12, 2) not null default 0 check (hourly_price >= 0),
+  school_block_enabled boolean not null default true,
+  school_block_days integer[] not null default array[1, 2, 3, 4, 5],
+  school_block_start_time time not null default '07:00',
+  school_block_end_time time not null default '17:00',
   constraint settings_single_row check (id = 1)
 );
 
@@ -34,11 +38,29 @@ insert into public.settings (id, hourly_price)
 values (1, 0)
 on conflict (id) do nothing;
 
+alter table public.settings
+  add column if not exists school_block_enabled boolean not null default true,
+  add column if not exists school_block_days integer[] not null default array[1, 2, 3, 4, 5],
+  add column if not exists school_block_start_time time not null default '07:00',
+  add column if not exists school_block_end_time time not null default '17:00';
+
 create or replace function public.prevent_reservation_overlap()
 returns trigger
 language plpgsql
 as $$
 begin
+  if exists (
+    select 1
+    from public.settings s
+    where s.id = 1
+      and s.school_block_enabled = true
+      and extract(isodow from new.reservation_date)::integer = any(s.school_block_days)
+      and new.start_time < s.school_block_end_time
+      and new.end_time > s.school_block_start_time
+  ) then
+    raise exception 'Seçilen saat okul kullanımı için kapalıdır.';
+  end if;
+
   if exists (
     select 1
     from public.reservations r

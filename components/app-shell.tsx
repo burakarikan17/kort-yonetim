@@ -23,7 +23,14 @@ export function AppShell({
   subtitle?: string;
   active: string;
 }) {
-  const mobileItems = navItems.slice(0, 4);
+  const mobileItems = navItems.filter((item) => item.href !== "/finans");
+  const mobileLabels: Record<string, string> = {
+    "/dashboard": "Panel",
+    "/takvim": "Takvim",
+    "/rezervasyon-ekle": "Ekle",
+    "/rezervasyonlar": "Kayıtlar",
+    "/ayarlar": "Ayarlar"
+  };
 
   return (
     <div className="min-h-screen lg:grid lg:grid-cols-[17rem_1fr]">
@@ -104,7 +111,7 @@ export function AppShell({
         {children}
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t border-white/10 bg-ink-950/95 px-2 pb-2 pt-2 backdrop-blur lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-white/10 bg-ink-950/95 px-1 pb-2 pt-2 backdrop-blur lg:hidden">
         {mobileItems.map((item) => {
           const Icon = item.icon;
           const isActive = active === item.href;
@@ -118,7 +125,7 @@ export function AppShell({
               )}
             >
               <Icon size={19} />
-              <span className="max-w-full truncate">{item.label.replace("Rezervasyon ", "")}</span>
+              <span className="max-w-full truncate">{mobileLabels[item.href] ?? item.label}</span>
             </Link>
           );
         })}

@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { ReservationInput } from "@/lib/types";
-import { normalizeTime } from "@/lib/utils";
+import { getIsoWeekday, normalizeTime, overlaps } from "@/lib/utils";
+import { getSettings } from "@/lib/supabase/queries";
 
 function composeReservationDate(formData: FormData) {
   const directDate = String(formData.get("reservation_date") ?? "").trim();
@@ -77,6 +78,23 @@ async function assertNoOverlap(input: ReservationInput, ignoreId?: string) {
   }
 }
 
+async function assertNotSchoolBlocked(input: ReservationInput) {
+  const settings = await getSettings();
+
+  if (
+    settings.school_block_enabled &&
+    settings.school_block_days.includes(getIsoWeekday(input.reservation_date)) &&
+    overlaps(
+      input.start_time,
+      input.end_time,
+      settings.school_block_start_time,
+      settings.school_block_end_time
+    )
+  ) {
+    throw new Error("Seçilen saat okul kullanımı için kapalıdır.");
+  }
+}
+
 function refreshPages() {
   revalidatePath("/");
   revalidatePath("/takvim");
@@ -87,6 +105,7 @@ function refreshPages() {
 export async function createReservation(formData: FormData) {
   const input = readReservation(formData);
   validateReservation(input);
+  await assertNotSchoolBlocked(input);
   await assertNoOverlap(input);
 
   const supabase = await createClient();
@@ -103,6 +122,7 @@ export async function createReservation(formData: FormData) {
 export async function updateReservation(id: string, formData: FormData) {
   const input = readReservation(formData);
   validateReservation(input);
+  await assertNotSchoolBlocked(input);
   await assertNoOverlap(input, id);
 
   const supabase = await createClient();

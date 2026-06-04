@@ -1,6 +1,6 @@
 import { AppShell } from "@/components/app-shell";
 import { CalendarGrid } from "@/components/calendar-grid";
-import { getCalendarReservations } from "@/lib/supabase/queries";
+import { getCalendarReservations, getSettings } from "@/lib/supabase/queries";
 import { todayISO } from "@/lib/utils";
 
 const months = [
@@ -44,19 +44,22 @@ export default async function CalendarPage({
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 4 }, (_, index) => String(currentYear + index));
   const view = params.view === "week" ? "week" : "day";
-  const reservations = await getCalendarReservations(date, view);
+  const [reservations, settings] = await Promise.all([
+    getCalendarReservations(date, view),
+    getSettings()
+  ]);
 
   return (
     <AppShell
       title="Takvim"
-      subtitle="Saatlik bloklardan günlük veya haftalık doluluk takibi"
+      subtitle="Boş, dolu ve okul kullanım saatlerini takip edin"
       active="/takvim"
     >
-      <form className="panel mb-5 flex flex-col gap-3 p-4 sm:flex-row sm:items-end">
+      <form className="panel mb-5 grid gap-4 p-4 md:grid-cols-[1fr_auto_auto] md:items-end">
         <fieldset className="grid gap-2">
           <legend className="label mb-2">Tarih</legend>
-          <div className="grid grid-cols-[4.5rem_8rem_5.5rem] gap-2">
-            <select className="field h-11" name="reservation_day" defaultValue={selectedDate.day}>
+          <div className="grid grid-cols-[0.85fr_1.35fr_1fr] gap-2">
+            <select className="field h-12" name="reservation_day" defaultValue={selectedDate.day}>
               {Array.from({ length: 31 }, (_, index) => String(index + 1).padStart(2, "0")).map(
                 (day) => (
                   <option key={day} value={day}>
@@ -65,14 +68,14 @@ export default async function CalendarPage({
                 )
               )}
             </select>
-            <select className="field h-11" name="reservation_month" defaultValue={selectedDate.month}>
+            <select className="field h-12" name="reservation_month" defaultValue={selectedDate.month}>
               {months.map((month) => (
                 <option key={month.value} value={month.value}>
                   {month.label}
                 </option>
               ))}
             </select>
-            <select className="field h-11" name="reservation_year" defaultValue={selectedDate.year}>
+            <select className="field h-12" name="reservation_year" defaultValue={selectedDate.year}>
               {years.map((year) => (
                 <option key={year} value={year}>
                   {year}
@@ -81,18 +84,21 @@ export default async function CalendarPage({
             </select>
           </div>
         </fieldset>
+
         <label className="grid gap-2">
           <span className="label">Görünüm</span>
-          <select className="field sm:w-40" name="view" defaultValue={view}>
+          <select className="field h-12 md:w-40" name="view" defaultValue={view}>
             <option value="day">Günlük</option>
             <option value="week">Haftalık</option>
           </select>
         </label>
-        <button className="h-10 rounded-md bg-emerald-500 px-4 text-sm font-semibold text-ink-950 transition hover:bg-emerald-400">
+
+        <button className="h-12 rounded-md bg-emerald-500 px-4 text-sm font-semibold text-ink-950 transition hover:bg-emerald-400">
           Göster
         </button>
       </form>
-      <CalendarGrid reservations={reservations} date={date} view={view} />
+
+      <CalendarGrid reservations={reservations} settings={settings} date={date} view={view} />
     </AppShell>
   );
 }

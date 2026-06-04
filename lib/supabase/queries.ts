@@ -98,7 +98,15 @@ export async function getSettings() {
     throw new Error(error.message);
   }
 
-  return (data ?? { id: 1, hourly_price: 0 }) as Settings;
+  return {
+    id: 1,
+    hourly_price: 0,
+    school_block_enabled: true,
+    school_block_days: [1, 2, 3, 4, 5],
+    school_block_start_time: "07:00:00",
+    school_block_end_time: "17:00:00",
+    ...(data ?? {})
+  } as Settings;
 }
 
 export async function searchReservations(term = "") {

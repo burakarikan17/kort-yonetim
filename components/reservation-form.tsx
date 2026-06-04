@@ -1,5 +1,5 @@
 import type { Reservation } from "@/lib/types";
-import { displayTime, todayISO } from "@/lib/utils";
+import { displayTime, getTimeOptions, todayISO } from "@/lib/utils";
 
 const months = [
   { value: "01", label: "Ocak" },
@@ -16,12 +16,8 @@ const months = [
   { value: "12", label: "Aralık" }
 ];
 
-const timeOptions = Array.from({ length: 24 }, (_, index) => {
-  const hour = index;
-  return `${String(hour).padStart(2, "0")}:00`;
-});
-
-const endTimeOptions = [...timeOptions.slice(1), "24:00"];
+const startTimeOptions = getTimeOptions(0, 23 * 60 + 30, 30);
+const endTimeOptions = getTimeOptions(30, 24 * 60, 30);
 
 function splitDate(value: string) {
   const [year, month, day] = value.split("-");
@@ -45,6 +41,10 @@ export function ReservationForm({
 
   return (
     <form action={action} className="panel p-4 sm:p-5">
+      <div className="mb-4 rounded-md border border-emerald-400/20 bg-emerald-500/[0.08] px-3 py-2 text-xs text-emerald-100">
+        Sadece tarih, başlangıç ve bitiş saati zorunludur.
+      </div>
+
       <div className="grid gap-4 lg:grid-cols-2">
         <label className="grid gap-2">
           <span className="label">Müşteri adı</span>
@@ -55,8 +55,9 @@ export function ReservationForm({
             placeholder="İsteğe bağlı"
           />
         </label>
+
         <label className="grid gap-2">
-          <span className="label">Telefon numarası</span>
+          <span className="label">Telefon</span>
           <input
             className="field h-12"
             name="phone"
@@ -86,6 +87,7 @@ export function ReservationForm({
                 )}
               </select>
             </label>
+
             <label>
               <span className="sr-only">Ay</span>
               <select
@@ -101,6 +103,7 @@ export function ReservationForm({
                 ))}
               </select>
             </label>
+
             <label>
               <span className="sr-only">Yıl</span>
               <select
@@ -117,30 +120,30 @@ export function ReservationForm({
               </select>
             </label>
           </div>
-          <p className="text-xs text-slate-500">Gün / Ay / Yıl biçiminde seçilir.</p>
         </fieldset>
 
         <label className="grid gap-2">
-          <span className="label">Başlangıç saati</span>
+          <span className="label">Başlangıç</span>
           <select
             className="field h-12"
             name="start_time"
-            defaultValue={reservation ? displayTime(reservation.start_time) : "00:00"}
+            defaultValue={reservation ? displayTime(reservation.start_time) : "18:00"}
             required
           >
-            {timeOptions.map((time) => (
+            {startTimeOptions.map((time) => (
               <option key={time} value={time}>
                 {time}
               </option>
             ))}
           </select>
         </label>
+
         <label className="grid gap-2">
-          <span className="label">Bitiş saati</span>
+          <span className="label">Bitiş</span>
           <select
             className="field h-12"
             name="end_time"
-            defaultValue={reservation ? displayTime(reservation.end_time) : "01:00"}
+            defaultValue={reservation ? displayTime(reservation.end_time) : "19:00"}
             required
           >
             {endTimeOptions.map((time) => (
@@ -163,6 +166,7 @@ export function ReservationForm({
             placeholder="İsteğe bağlı"
           />
         </label>
+
         <label className="grid gap-2 lg:col-span-2">
           <span className="label">Not</span>
           <textarea
@@ -173,6 +177,7 @@ export function ReservationForm({
           />
         </label>
       </div>
+
       <div className="sticky bottom-20 -mx-4 mt-5 border-t border-white/10 bg-ink-850/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
         <button className="inline-flex h-12 w-full items-center justify-center rounded-md bg-emerald-500 px-4 text-sm font-semibold text-ink-950 transition hover:bg-emerald-400 sm:w-auto">
           {submitLabel}

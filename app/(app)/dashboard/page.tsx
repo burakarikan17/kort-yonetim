@@ -4,11 +4,14 @@ import { CalendarGrid } from "@/components/calendar-grid";
 import { FinanceSummary } from "@/components/finance-summary";
 import { ReservationList } from "@/components/reservation-list";
 import { StatCard } from "@/components/stat-card";
-import { getDashboardData } from "@/lib/supabase/queries";
+import { getDashboardData, getSettings } from "@/lib/supabase/queries";
 import { formatCurrency, todayISO } from "@/lib/utils";
 
 export default async function DashboardPage() {
-  const { todayReservations, upcomingReservations, finance } = await getDashboardData();
+  const [{ todayReservations, upcomingReservations, finance }, settings] = await Promise.all([
+    getDashboardData(),
+    getSettings()
+  ]);
 
   return (
     <AppShell title="Dashboard" subtitle="Bugünkü durum ve yaklaşan rezervasyonlar" active="/dashboard">
@@ -41,7 +44,7 @@ export default async function DashboardPage() {
             <h2 className="text-base font-semibold text-white">Bugünün Takvimi</h2>
             <span className="text-xs text-slate-500">Yeşil boş, kırmızı dolu</span>
           </div>
-          <CalendarGrid reservations={todayReservations} date={todayISO()} view="day" />
+          <CalendarGrid reservations={todayReservations} settings={settings} date={todayISO()} view="day" />
         </section>
 
         <section className="panel p-5">

@@ -23,4 +23,8 @@ export type ReservationInput = {
 export type Settings = {
   id: number;
   hourly_price: number;
+  school_block_enabled: boolean;
+  school_block_days: number[];
+  school_block_start_time: string;
+  school_block_end_time: string;
 };
