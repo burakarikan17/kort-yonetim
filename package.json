@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "opennextjs-cloudflare build && node scripts/clean-cloudflare-build.mjs",
-    "build:next": "opennextjs-cloudflare build && node scripts/clean-cloudflare-build.mjs",
+    "build:next": "next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
