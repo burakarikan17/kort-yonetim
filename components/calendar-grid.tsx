@@ -1,18 +1,28 @@
 import { addDays, format, startOfWeek } from "date-fns";
 import { tr } from "date-fns/locale";
+import { CalendarClock, GraduationCap, UserRound } from "lucide-react";
 import type { Reservation, Settings } from "@/lib/types";
-import { cn, displayTime, getHourSlots, isSchoolBlockedSlot, overlaps } from "@/lib/utils";
+import {
+  cn,
+  displayTime,
+  getIsoWeekday,
+  minutesToTime,
+  timeToMinutes
+} from "@/lib/utils";
 
 type CalendarDay = {
-  date: Date;
   iso: string;
   label: string;
   caption: string;
 };
 
-type SlotState = {
-  reservation?: Reservation;
-  schoolBlocked: boolean;
+type CalendarEvent = {
+  id: string;
+  kind: "reservation" | "school";
+  start: string;
+  end: string;
+  title: string;
+  detail?: string;
 };
 
 export function CalendarGrid({
@@ -26,66 +36,61 @@ export function CalendarGrid({
   date: string;
   view: "day" | "week";
 }) {
-  const slots = getHourSlots(0, 24, 30);
   const days = getDays(date, view);
 
   return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-2 text-xs sm:flex">
-        <Legend color="bg-emerald-500" label="Boş" />
-        <Legend color="bg-red-500" label="Dolu" />
-        <Legend color="bg-amber-400" label="Okul" />
-      </div>
+    <div className={cn("grid gap-4", view === "week" && "xl:grid-cols-2")}>
+      {days.map((day) => {
+        const events = getEventsForDay(day.iso, reservations, settings);
+        const freeRanges = getFreeRanges(events);
 
-      <div className="space-y-4 md:hidden">
-        {days.map((day) => (
+        return (
           <section key={day.iso} className="panel overflow-hidden">
-            <div className="border-b border-white/10 bg-white/[0.04] px-4 py-3">
-              <p className="text-sm font-semibold text-white">{day.label}</p>
-              <p className="text-xs text-slate-500">{day.caption}</p>
-            </div>
-            <div className="divide-y divide-white/10">
-              {slots.map((slot) => (
-                <MobileSlot
-                  key={`${day.iso}-${slot.start}`}
-                  slot={slot}
-                  state={getSlotState(day.iso, slot, reservations, settings)}
-                />
-              ))}
+            <header className="flex items-center justify-between gap-3 border-b border-white/10 bg-white/[0.04] px-4 py-3">
+              <div>
+                <h2 className="text-sm font-semibold capitalize text-white">{day.label}</h2>
+                <p className="mt-0.5 text-xs text-slate-500">{day.caption}</p>
+              </div>
+              <span className="rounded-md border border-white/10 px-2.5 py-1 text-xs text-slate-400">
+                {events.length} kayıt
+              </span>
+            </header>
+
+            <div className="p-3 sm:p-4">
+              {events.length > 0 ? (
+                <div className="space-y-2">
+                  {events.map((event) => (
+                    <AgendaEvent key={event.id} event={event} />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 rounded-md border border-dashed border-emerald-400/25 bg-emerald-500/[0.06] px-3 py-4 text-sm text-emerald-100">
+                  <CalendarClock size={18} />
+                  Gün boyunca kayıt yok.
+                </div>
+              )}
+
+              <div className="mt-4 border-t border-white/10 pt-4">
+                <p className="mb-2 text-xs font-semibold uppercase text-slate-500">Müsait aralıklar</p>
+                <div className="flex flex-wrap gap-2">
+                  {freeRanges.length > 0 ? (
+                    freeRanges.map((range) => (
+                      <span
+                        key={`${range.start}-${range.end}`}
+                        className="rounded-md border border-emerald-400/20 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-medium text-emerald-200"
+                      >
+                        {range.start} - {range.end}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-slate-500">Müsait zaman yok.</span>
+                  )}
+                </div>
+              </div>
             </div>
           </section>
-        ))}
-      </div>
-
-      <div className="panel hidden overflow-hidden md:block">
-        <div
-          className={cn(
-            "grid border-b border-white/10 bg-white/5 text-xs font-semibold uppercase tracking-normal text-slate-400",
-            view === "day" ? "grid-cols-[7rem_1fr]" : "min-w-[58rem] grid-cols-[6rem_repeat(7,1fr)]"
-          )}
-        >
-          <div className="px-3 py-3">Saat</div>
-          {days.map((day) => (
-            <div key={day.iso} className="px-3 py-3">
-              <span className="block text-slate-200">{day.label}</span>
-              <span className="font-normal normal-case text-slate-500">{day.caption}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className={view === "week" ? "overflow-x-auto" : undefined}>
-          <div
-            className={cn(
-              "grid",
-              view === "day" ? "grid-cols-[7rem_1fr]" : "min-w-[58rem] grid-cols-[6rem_repeat(7,1fr)]"
-            )}
-          >
-            {slots.map((slot) => (
-              <Row key={slot.label} slot={slot} days={days} reservations={reservations} settings={settings} />
-            ))}
-          </div>
-        </div>
-      </div>
+        );
+      })}
     </div>
   );
 }
@@ -99,118 +104,100 @@ function getDays(date: string, view: "day" | "week"): CalendarDay[] {
         );
 
   return dates.map((day) => ({
-    date: day,
     iso: format(day, "yyyy-MM-dd"),
     label: format(day, "EEEE", { locale: tr }),
     caption: format(day, "d MMMM yyyy", { locale: tr })
   }));
 }
 
-function getSlotState(
+function getEventsForDay(
   dayISO: string,
-  slot: { start: string; end: string; label: string },
   reservations: Reservation[],
   settings: Settings
-): SlotState {
-  const reservation = reservations.find(
-    (item) =>
-      item.reservation_date === dayISO &&
-      overlaps(slot.start, slot.end, item.start_time, item.end_time)
-  );
-  const schoolBlocked = isSchoolBlockedSlot({
-    date: dayISO,
-    slotStart: slot.start,
-    slotEnd: slot.end,
-    enabled: settings.school_block_enabled,
-    days: settings.school_block_days,
-    blockStart: settings.school_block_start_time,
-    blockEnd: settings.school_block_end_time
-  });
+): CalendarEvent[] {
+  const events: CalendarEvent[] = reservations
+    .filter((reservation) => reservation.reservation_date === dayISO)
+    .map((reservation) => ({
+      id: reservation.id,
+      kind: "reservation",
+      start: displayTime(reservation.start_time),
+      end: displayTime(reservation.end_time),
+      title: reservation.customer_name || "İsimsiz rezervasyon",
+      detail: reservation.phone || undefined
+    }));
 
-  return { reservation, schoolBlocked };
+  if (
+    settings.school_block_enabled &&
+    settings.school_block_days.includes(getIsoWeekday(dayISO))
+  ) {
+    events.push({
+      id: `school-${dayISO}`,
+      kind: "school",
+      start: displayTime(settings.school_block_start_time),
+      end: displayTime(settings.school_block_end_time),
+      title: "Okul kullanımı"
+    });
+  }
+
+  return events.sort((a, b) => timeToMinutes(a.start) - timeToMinutes(b.start));
 }
 
-function Legend({ color, label }: { color: string; label: string }) {
-  return (
-    <div className="flex items-center justify-center gap-2 rounded-md border border-white/10 bg-ink-850/70 px-3 py-2 text-slate-300 sm:justify-start">
-      <span className={cn("size-2.5 rounded-full", color)} />
-      {label}
-    </div>
-  );
+function getFreeRanges(events: CalendarEvent[]) {
+  const busy = events
+    .map((event) => ({ start: timeToMinutes(event.start), end: timeToMinutes(event.end) }))
+    .sort((a, b) => a.start - b.start);
+  const merged: Array<{ start: number; end: number }> = [];
+
+  for (const interval of busy) {
+    const previous = merged.at(-1);
+    if (previous && interval.start <= previous.end) {
+      previous.end = Math.max(previous.end, interval.end);
+    } else {
+      merged.push({ ...interval });
+    }
+  }
+
+  const free: Array<{ start: string; end: string }> = [];
+  let cursor = 0;
+  for (const interval of merged) {
+    if (interval.start > cursor) {
+      free.push({ start: minutesToTime(cursor), end: minutesToTime(interval.start) });
+    }
+    cursor = Math.max(cursor, interval.end);
+  }
+  if (cursor < 24 * 60) {
+    free.push({ start: minutesToTime(cursor), end: "24:00" });
+  }
+
+  return free;
 }
 
-function MobileSlot({
-  slot,
-  state
-}: {
-  slot: { start: string; end: string; label: string };
-  state: SlotState;
-}) {
-  const { reservation, schoolBlocked } = state;
-  return (
-    <div className="flex items-center gap-3 px-4 py-3">
-      <div className="w-24 shrink-0 text-sm font-medium text-slate-400">{slot.label}</div>
-      <SlotCard reservation={reservation} schoolBlocked={schoolBlocked} />
-    </div>
-  );
-}
+function AgendaEvent({ event }: { event: CalendarEvent }) {
+  const school = event.kind === "school";
+  const Icon = school ? GraduationCap : UserRound;
 
-function Row({
-  slot,
-  days,
-  reservations,
-  settings
-}: {
-  slot: { start: string; end: string; label: string };
-  days: CalendarDay[];
-  reservations: Reservation[];
-  settings: Settings;
-}) {
-  return (
-    <>
-      <div className="border-b border-white/10 px-3 py-3 text-xs font-medium text-slate-500">
-        {slot.label}
-      </div>
-      {days.map((day) => {
-        const state = getSlotState(day.iso, slot, reservations, settings);
-        return (
-          <div key={`${day.iso}-${slot.start}`} className="border-b border-l border-white/10 p-2">
-            <SlotCard reservation={state.reservation} schoolBlocked={state.schoolBlocked} />
-          </div>
-        );
-      })}
-    </>
-  );
-}
-
-function SlotCard({
-  reservation,
-  schoolBlocked
-}: {
-  reservation?: Reservation;
-  schoolBlocked: boolean;
-}) {
   return (
     <div
       className={cn(
-        "min-h-12 flex-1 rounded-md border px-3 py-2 text-xs",
-        reservation && "border-red-400/30 bg-red-500/14 text-red-100",
-        !reservation && schoolBlocked && "border-amber-300/35 bg-amber-400/14 text-amber-100",
-        !reservation && !schoolBlocked && "border-emerald-400/22 bg-emerald-500/10 text-emerald-100"
+        "grid grid-cols-[5.75rem_1fr] items-center gap-3 rounded-md border px-3 py-3",
+        school
+          ? "border-amber-300/30 bg-amber-400/10 text-amber-100"
+          : "border-red-400/25 bg-red-500/10 text-red-100"
       )}
     >
-      {reservation ? (
-        <>
-          <p className="font-semibold">{reservation.customer_name || "Dolu"}</p>
-          <p className="mt-1 text-red-200/80">
-            {displayTime(reservation.start_time)} - {displayTime(reservation.end_time)}
-          </p>
-        </>
-      ) : schoolBlocked ? (
-        <p className="font-medium">Okul kullanımı</p>
-      ) : (
-        <p className="font-medium">Boş</p>
-      )}
+      <div className="text-sm font-semibold">
+        {event.start}
+        <span className="block text-xs font-normal opacity-70">{event.end}</span>
+      </div>
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-md bg-black/15">
+          <Icon size={17} />
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold">{event.title}</p>
+          {event.detail ? <p className="mt-0.5 truncate text-xs opacity-70">{event.detail}</p> : null}
+        </div>
+      </div>
     </div>
   );
 }
